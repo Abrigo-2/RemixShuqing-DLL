@@ -46,7 +46,6 @@
 		</ItemGroup>
 		
         <Delete Files="@(RemovePlugins)" />
-        <Copy SourceFiles="@(CopyPlugins)" DestinationFolder="../mod/newest/plugins/" />
     </Target>
     
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
