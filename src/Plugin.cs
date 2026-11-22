@@ -30,7 +30,9 @@ namespace ShuqingRemix
         public void OnEnable()
         {
             On.RainWorld.OnModsInit += Extras.WrapInit(LoadResources);
-            On.Room.Update += LF_E05BoostTutorial;
+            On.Room.Update += RoomLF_E05.UpdateTutorial;
+            On.Room.Update += RoomRWS_wup2.UpdateTutorial;
+            On.Room.Update += RoomRWS_pea3.UpdateTutorial;
 
             On.Player.Update += Player_Update_ExhaustionBubbles;
         }
@@ -38,6 +40,166 @@ namespace ShuqingRemix
         private void LoadResources(RainWorld rainWorld)
         {
             Shuqing_Name = new("Shuqing"); // This calls for the registered ExtEnum that SlugBase created
+        }
+
+
+        // Same as Shuqing.ShuqingPlayer.PlayerHook Player_Update, only the internal values. 
+        public void ClassMechanicsShuqing_ExhaustionCheck(Player self)
+        {
+            if ((double)self.aerobicLevel >= 0.95)
+            {
+                this.ShuqingExhausted = true;
+            }
+
+            if (self.aerobicLevel < 0.4f)
+            {
+                this.ShuqingExhausted = false;
+            }
+        }
+        public bool ShuqingExhausted;
+
+
+        // Blows LizardBubbles if the Shuqing is exhausted.
+        public void Player_Update_ExhaustionBubbles(On.Player.orig_Update orig, Player self, bool eu)
+        {
+            orig.Invoke(self, eu);
+            // Only run the following code for the Shuqing!
+            if (self.room.world.game.StoryCharacter != Shuqing_Name)
+            {
+                return;
+            }
+
+            ClassMechanicsShuqing_ExhaustionCheck(self);
+            
+            if (this.ShuqingExhausted)
+            {
+                if ( (int)(self.room.game.clock) % 4 == 0)
+                {
+                    PlayerBubble lizardBubble = new PlayerBubble(self.graphicsModule as PlayerGraphics, 1.5f, UnityEngine.Random.value, 2f + UnityEngine.Random.value, Shuqing_Plugin_getColor2(self) );
+                    self.room.AddObject(lizardBubble);
+                }
+            }
+
+            if ((int)(self.room.game.clock) % 39 == 0)
+            {
+                Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self);
+            }
+
+        }
+
+        // Class for generating in-game tutorials...~!
+        public class AbstractRoomTutorial
+        {
+            private string SaveDataID { get; set; }
+            private string TriggerRoomName { get; set; }
+            
+            // for C# noobs (me): The last value indicates the function's return type. All other indicate argument types.
+            // for void functions, use Action<>
+            private Func<int, Room, bool> EmittingMessageEnded; 
+
+            public AbstractRoomTutorial(string _1, string _2, Func<int,Room, bool> _3)
+            {
+                SaveDataID = _1; TriggerRoomName = _2; EmittingMessageEnded = _3;
+            }
+
+            public void UpdateTutorial(On.Room.orig_Update orig, Room self)
+            {
+                orig(self);
+
+                bool Tutorial_Started = self.game.GetStorySession.saveState.unrecognizedSaveStrings.Contains(SaveDataID+"-Begin");
+                bool Tutorial_Ended = self.game.GetStorySession.saveState.unrecognizedSaveStrings.Contains(SaveDataID+"-End");
+
+                // Quit if not playing a story campaign.
+                if (self.game.session is not StoryGameSession)
+                {
+                    if (!Tutorial_Started) { this._message = 0; }
+                    return;
+                }
+                // Quit if not playing as the Shuqing or if not at the tutorial room.
+                else if (self.world.game.StoryCharacter != Shuqing_Name || self.roomSettings.name != TriggerRoomName
+                    || self.game.GetStorySession.saveState.cycleNumber > 1)
+                {
+                    if (!Tutorial_Started) { this._message = 0; }
+                    return;
+                }
+                // Quit if message has been shown.
+                else if (Tutorial_Ended)
+                {
+                    return;
+                }
+                else if (self.game.cameras[0].hud != null && self.game.cameras[0].hud.textPrompt.messages.Count < 1)
+                {
+                    if (!Tutorial_Started)
+                    {
+                        self.game.GetStorySession.saveState.unrecognizedSaveStrings.Add(SaveDataID+"-Begin");
+                    }
+
+                    if ( EmittingMessageEnded(this._message, self) )
+                    {
+                        self.game.GetStorySession.saveState.unrecognizedSaveStrings.Add(SaveDataID+"-End");
+                    }
+                    this._message++;
+                }
+            }
+
+            private int _message;
+        }
+
+        private AbstractRoomTutorial RoomLF_E05   = new AbstractRoomTutorial("BoostTutorial", "lf_e05", BoostTutorial);
+        private AbstractRoomTutorial RoomRWS_wup2 = new AbstractRoomTutorial("PoleBoostTutorial", "RWS_wup2", PoleBoostTutorial);
+        private AbstractRoomTutorial RoomRWS_pea3 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "RWS_pea3", ExhaustionCheatTutorial);
+
+
+        // Tutorial for the (first!) major obstacle!
+        public static bool BoostTutorial(int message, Room self)
+        {
+            switch (message)
+            {
+                case 0:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("Hold JUMP while moving to boost in that direction.", 40, 160, true, false);
+                    return false;
+                case 1:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("Before landing, tap JUMP to boost again! You can chain up to 3.", 60, 200, true, false);
+                    return false;
+                case 2:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("Be careful not to exhaust yourself.", 40, 90, true, false);
+                    return false;
+                case 3:
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        // Convenient tutorials.
+        public static bool PoleBoostTutorial(int message, Room self)
+        {
+            switch (message)
+            {
+                case 0:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("You can start and chain boosts while grabbing onto poles.", 40, 220, true, false);
+                    return false;
+                case 1:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("Holding JUMP while standing on poles will yield the same effect.", 80, 220, true, false);
+                    return false;
+                case 2:
+                    return true;
+                default:
+                    return true;
+            }
+        }
+        public static bool ExhaustionCheatTutorial(int message, Room self)
+        {
+            switch (message)
+            {
+                case 0:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("If struggling... You may disable boost exhuastion in the REMIX menu.", 40, 160, true, false);
+                    return false;
+                case 1:
+                    return true;
+                default:
+                    return true;
+            }
         }
 
 
@@ -99,110 +261,6 @@ namespace ShuqingRemix
             ColorUtility.TryParseHtmlString("#04FDDD", out color);
             return color;
         }
-
-
-        // Same as Shuqing.ShuqingPlayer.PlayerHook Player_Update, only the internal values. 
-        public void ClassMechanicsShuqing_ExhaustionCheck(Player self)
-        {
-            if ((double)self.aerobicLevel >= 0.95)
-            {
-                this.ShuqingExhausted = true;
-            }
-
-            if (self.aerobicLevel < 0.4f)
-            {
-                this.ShuqingExhausted = false;
-            }
-        }
-        public bool ShuqingExhausted;
-
-
-        // Blows LizardBubbles if the Shuqing is exhausted.
-        public void Player_Update_ExhaustionBubbles(On.Player.orig_Update orig, Player self, bool eu)
-        {
-            orig.Invoke(self, eu);
-            // Only run the following code for the Shuqing!
-            if (self.room.world.game.StoryCharacter != Shuqing_Name)
-            {
-                return;
-            }
-
-            ClassMechanicsShuqing_ExhaustionCheck(self);
-            
-            if (this.ShuqingExhausted)
-            {
-                if ( (int)(self.room.game.clock) % 4 == 0)
-                {
-                    PlayerBubble lizardBubble = new PlayerBubble(self.graphicsModule as PlayerGraphics, 1.5f, UnityEngine.Random.value, 2f + UnityEngine.Random.value, Shuqing_Plugin_getColor2(self) );
-                    self.room.AddObject(lizardBubble);
-                }
-            }
-
-        }
-
-        // Tutorial for the (first!) major obstacle!
-        private void LF_E05BoostTutorial(On.Room.orig_Update orig, Room self)
-        {
-            orig(self);
-
-            bool LF_E05BoostTutorial_Started = self.game.GetStorySession.saveState.unrecognizedSaveStrings.Contains("ShuqingBoostTutorial-Begin");
-            bool LF_E05BoostTutorial_Ended = self.game.GetStorySession.saveState.unrecognizedSaveStrings.Contains("ShuqingBoostTutorial-End");
-
-            // Quit if not playing a story campaign.
-            if ( self.game.session is not StoryGameSession )
-            {
-                if (!LF_E05BoostTutorial_Started) { this.message = 0; }
-                return;
-            }
-            // Quit if not playing as the Shuqing or if not at the tutorial room.
-            else if (self.world.game.StoryCharacter != Shuqing_Name || self.roomSettings.name != "lf_e05" 
-                || self.game.GetStorySession.saveState.cycleNumber > 1)
-            {
-                if (!LF_E05BoostTutorial_Started) { this.message = 0; }
-                return;
-            }
-            // Quit if message has been shown.
-            else if (LF_E05BoostTutorial_Ended)
-            {
-                return;
-            }
-            else if (self.game.cameras[0].hud != null && self.game.cameras[0].hud.textPrompt.messages.Count < 1)
-            {
-                if (!LF_E05BoostTutorial_Started) 
-                {
-                    self.game.GetStorySession.saveState.unrecognizedSaveStrings.Add("ShuqingBoostTutorial-Begin");
-                }
-
-                Logger.LogInfo("EMITTING MESSAGE!");
-                
-                switch (this.message)
-                {
-                    case 0:
-                        self.game.cameras[0].hud.textPrompt.AddMessage("Hold JUMP while moving to boost in that direction.", 40, 160, true, false);
-                        this.message++;
-                        return;
-                    case 1:
-                        self.game.cameras[0].hud.textPrompt.AddMessage("Before landing, spam JUMP to boost again! You can chain up to 3.", 60, 200, true, false);
-                        this.message++;
-                        return;
-                    case 2:
-                        self.game.cameras[0].hud.textPrompt.AddMessage("Be careful not to exhaust yourself.", 40, 90, true, false);
-                        this.message++;
-                        return;
-                    case 3:
-                        if (!LF_E05BoostTutorial_Ended)
-                        {
-                            self.game.GetStorySession.saveState.unrecognizedSaveStrings.Add("ShuqingBoostTutorial-End");
-                        }
-                        this.message++;
-                        return;
-                    default:
-                        return;
-                }
-
-            }
-        }
-        public int message;
 
     }
 
