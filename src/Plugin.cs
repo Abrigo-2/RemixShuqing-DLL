@@ -21,7 +21,7 @@ namespace ShuqingRemix
     [BepInDependency("slime-cubed.slugbase")]
     public class ShuqingRemixFeatures : BaseUnityPlugin
     {
-        private const string MOD_ID = "abrigo2.shuqingremix";
+        public const string MOD_ID = "abrigo2.shuqingremix";
         public static SlugcatStats.Name Shuqing_Name;
 
         // Variables for disabling the weird blue glow during the void sea cutscene (too hard...)
@@ -31,9 +31,9 @@ namespace ShuqingRemix
         public void OnEnable()
         {
             On.RainWorld.OnModsInit += Extras.WrapInit(LoadResources);
-            On.Room.Update += RoomLF_E05.UpdateTutorial;
-            On.Room.Update += RoomRWS_wup2.UpdateTutorial;
-            On.Room.Update += RoomRWS_pea3.UpdateTutorial;
+            On.RainWorld.OnModsInit += ManualHooks;
+
+            HookTutorials();
 
             On.Player.Update += Player_Update_ExhaustionBubbles;
             On.Player.Update += Player_Update_LenientBoostChain;
@@ -44,6 +44,46 @@ namespace ShuqingRemix
         private void LoadResources(RainWorld rainWorld)
         {
             Shuqing_Name = new("Shuqing"); // This calls for the registered ExtEnum that SlugBase created
+        }
+
+        // Add manual hooks...
+        private bool _isInit = false;
+        private void ManualHooks(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+        {
+            orig(self);
+            if (_isInit) return;
+            _isInit = true;
+
+            Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogError("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogError("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogMessage("MIMIMIMIMIMIMIIMaaaauAUAUAUUAAUAUUAAAUUAAIMIMMIMMMIMMIIMAUUAUAUAMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogError("MIMIMIMIUAUUAAAAAAAAAAAAAUAUUAUAUAUAMIMIMIIMIMIMMIMMMIMMIIMMIMIUAUAUAUWAWAHWHAHAHHAHAHHAMIMIMIMIMMIMIMIIIMI");
+            Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogError("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+            Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
+
+            try
+            {
+                var _tm = typeof(Shuqing.ShuqingPlayer.PlayerHook)
+                    .GetMethod(nameof(Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump),
+                    new Type[] { typeof(Player) });
+                _ = new Hook(_tm, ShuqingJump_Remix);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+        }
+        
+
+        public void HookTutorials()
+        {
+            On.Room.Update += RoomLF_E05.UpdateTutorial;
+            On.Room.Update += RoomRWS_wup2.UpdateTutorial;
+            On.Room.Update += RoomRWS_pea3.UpdateTutorial;
         }
 
 
@@ -86,6 +126,7 @@ namespace ShuqingRemix
 
         }
 
+
         private int ChainBoostLeniencyTime;
         private int ChainBoostLeniencyCooldown;
         private bool ChainBoostLeniencyIsVertical;
@@ -106,7 +147,7 @@ namespace ShuqingRemix
             }
 
             bool isValidSpeed = (6.8f < speed);
-            bool isInvalidState = (self.bodyMode == Player.BodyModeIndex.CorridorClimb || self.animation == Player.AnimationIndex.BellySlide || self.bodyMode == Player.BodyModeIndex.Crawl);
+            bool isInvalidState = (self.bodyMode == Player.BodyModeIndex.CorridorClimb || self.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut || self.animation == Player.AnimationIndex.BellySlide || self.bodyMode == Player.BodyModeIndex.Crawl);
 
             if (!isInvalidState && direction.x != 0 && chunk == 0 && isValidSpeed && self.input[0].x == direction.x && !self.standing)
             {
@@ -141,8 +182,9 @@ namespace ShuqingRemix
             {
                 ChainBoostLeniencyTime = 0;
             }
-            else if (self.animation == Player.AnimationIndex.RocketJump)
+            else if (self.animation == Player.AnimationIndex.RocketJump || self.bodyMode == Player.BodyModeIndex.Swimming)
             {
+                // delete leniency when swimming cuz screw you.
                 ChainBoostLeniencyTime = 0;
                 ChainBoostLeniencyCooldown--;
             }
@@ -153,17 +195,41 @@ namespace ShuqingRemix
             }
 
 
-            bool isMoving = (self.input[0].x != 0 || self.input[0].y >= 0);
+            Vector2 dir = new Vector2(RWInput.PlayerInput(self.playerState.playerNumber).x, RWInput.PlayerInput(self.playerState.playerNumber).y);
+
+            bool isMovingX = (dir.x != 0);
+            bool isMovingY = (dir.y >= 0);
+            
             bool isInvalidState = (self.animation == Player.AnimationIndex.BellySlide || self.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut);
             
-            if (ChainBoostLeniencyTime > 0 && ChainBoostLeniencyCooldown < 0 && isjmp && isMoving 
+            if (ChainBoostLeniencyTime > 0 && ChainBoostLeniencyCooldown < 0 && isjmp && (isMovingX || isMovingY) 
                 && (!isInvalidState || self.standing) ) //bodyMode == Player.BodyModeIndex.Crawl || self.animation == Player.AnimationIndex.CrawlTurn
             {
-                Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self);
+                if (!isMovingY) 
+                {
+                    Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self, new Vector2((float)dir.x * 16f, 10f).normalized); 
+                }
+                else { Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self); }
+                
                 ChainBoostLeniencyCooldown = 20;
             }
 
         }
+
+        // Lets Shuqing jump a little up in the air during horizontal boosts.
+        private static void ShuqingJump_Remix(Action<Player> orig, Player self)
+        {
+            // hopefully this doesnt matter.....
+            //if (PlayerModuleManager.PlayerModules.TryGetValue(self, out var _))
+            Vector2 dir = new Vector2(RWInput.PlayerInput(self.playerState.playerNumber).x, RWInput.PlayerInput(self.playerState.playerNumber).y);
+
+            if (dir.x != 0 && Math.Abs(dir.y) < 0.5)
+            {
+                dir = new Vector2((float)dir.x * 22f, 9f).normalized;
+            }
+            Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self, dir);
+        }
+
 
         // Class for generating in-game tutorials...~!
         public class AbstractRoomTutorial

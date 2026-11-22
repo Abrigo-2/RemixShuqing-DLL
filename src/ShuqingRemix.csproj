@@ -43,6 +43,7 @@
 		<ItemGroup>
 			<Compile Include="Extras.cs" />
 			<Compile Include="SlugcatBubbles.cs" />
+			<Compile Include="ShuqingRemixOptions.cs" />
 		</ItemGroup>
 		
         <Delete Files="@(RemovePlugins)" />
