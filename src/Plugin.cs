@@ -8,6 +8,7 @@ using RWCustom;
 using Shuqing;
 using Shuqing.ShuqingPlayer;
 using SlugBase.Features;
+using MoreSlugcats;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -35,6 +36,9 @@ namespace ShuqingRemix
             On.Room.Update += RoomRWS_pea3.UpdateTutorial;
 
             On.Player.Update += Player_Update_ExhaustionBubbles;
+            On.Player.Update += Player_Update_LenientBoostChain;
+
+            On.Player.TerrainImpact += Player_TerrainImpact_LenientBoostChain;
         }
         // Load any resources, such as sprites or sounds
         private void LoadResources(RainWorld rainWorld)
@@ -80,9 +84,83 @@ namespace ShuqingRemix
                 }
             }
 
-            if ((int)(self.room.game.clock) % 39 == 0)
+        }
+
+        private int ChainBoostLeniencyTime;
+        private int ChainBoostLeniencyCooldown;
+        private bool ChainBoostLeniencyIsVertical;
+        private float ChainBoostLeniencyDirection;
+
+        // Gives a small graze period for chaining boosts
+        public void Player_TerrainImpact_LenientBoostChain(On.Player.orig_TerrainImpact orig, Player self, int chunk, IntVector2 direction, float speed, bool firstContact)
+        {
+            orig(self, chunk, direction, speed, firstContact);
+
+            if (self.room.world.game.StoryCharacter != Shuqing_Name)
+            {
+                return;
+            }
+            else if (ModManager.MMF && MMF.cfgWallpounce.Value)
+            {
+                return;
+            }
+
+            bool isValidSpeed = (6.8f < speed);
+            bool isInvalidState = (self.bodyMode == Player.BodyModeIndex.CorridorClimb || self.animation == Player.AnimationIndex.BellySlide || self.bodyMode == Player.BodyModeIndex.Crawl);
+
+            if (!isInvalidState && direction.x != 0 && chunk == 0 && isValidSpeed && self.input[0].x == direction.x && !self.standing)
+            {
+                ChainBoostLeniencyDirection = (float)direction.x;
+                ChainBoostLeniencyIsVertical = false;
+                ChainBoostLeniencyTime = 20;
+            }
+            if (!isInvalidState && direction.y < 0 && chunk == 0 && isValidSpeed && self.input[0].y != direction.y && !self.standing)
+            {
+                ChainBoostLeniencyIsVertical = true;
+                ChainBoostLeniencyTime = 20;
+            }
+
+        }
+        public void Player_Update_LenientBoostChain(On.Player.orig_Update orig, Player self, bool eu)
+        {
+            bool isjmp = self.input[0].jmp;
+            orig.Invoke(self, eu);
+            
+            // Only run the following code for the Shuqing!
+            if (self.room.world.game.StoryCharacter != Shuqing_Name)
+            {
+                return;
+            }
+            // Only run if wallpounces are disabled.
+            else if (ModManager.MMF && MMF.cfgWallpounce.Value)
+            {
+                return;
+            }
+
+            if (this.ShuqingExhausted)
+            {
+                ChainBoostLeniencyTime = 0;
+            }
+            else if (self.animation == Player.AnimationIndex.RocketJump)
+            {
+                ChainBoostLeniencyTime = 0;
+                ChainBoostLeniencyCooldown--;
+            }
+            else
+            {
+                ChainBoostLeniencyTime--;
+                ChainBoostLeniencyCooldown--;
+            }
+
+
+            bool isMoving = (self.input[0].x != 0 || self.input[0].y >= 0);
+            bool isInvalidState = (self.animation == Player.AnimationIndex.BellySlide || self.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut);
+            
+            if (ChainBoostLeniencyTime > 0 && ChainBoostLeniencyCooldown < 0 && isjmp && isMoving 
+                && (!isInvalidState || self.standing) ) //bodyMode == Player.BodyModeIndex.Crawl || self.animation == Player.AnimationIndex.CrawlTurn
             {
                 Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self);
+                ChainBoostLeniencyCooldown = 20;
             }
 
         }
@@ -147,10 +225,11 @@ namespace ShuqingRemix
 
         private AbstractRoomTutorial RoomLF_E05   = new AbstractRoomTutorial("BoostTutorial", "lf_e05", BoostTutorial);
         private AbstractRoomTutorial RoomRWS_wup2 = new AbstractRoomTutorial("PoleBoostTutorial", "RWS_wup2", PoleBoostTutorial);
-        private AbstractRoomTutorial RoomRWS_pea3 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "RWS_pea3", ExhaustionCheatTutorial);
+        private AbstractRoomTutorial RoomRWS_pea3 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "RWS_pea2", ExhaustionCheatTutorial);
 
 
         // Tutorial for the (first!) major obstacle!
+        // Note- Tutorials are not death persistent.
         public static bool BoostTutorial(int message, Room self)
         {
             switch (message)
@@ -162,7 +241,7 @@ namespace ShuqingRemix
                     self.game.cameras[0].hud.textPrompt.AddMessage("Before landing, tap JUMP to boost again! You can chain up to 3.", 60, 200, true, false);
                     return false;
                 case 2:
-                    self.game.cameras[0].hud.textPrompt.AddMessage("Be careful not to exhaust yourself.", 40, 90, true, false);
+                    self.game.cameras[0].hud.textPrompt.AddMessage("Be mindful to crawl if you exhaust yourself.", 40, 90, true, false);
                     return false;
                 case 3:
                     return true;
@@ -193,9 +272,12 @@ namespace ShuqingRemix
             switch (message)
             {
                 case 0:
-                    self.game.cameras[0].hud.textPrompt.AddMessage("If struggling... You may disable boost exhuastion in the REMIX menu.", 40, 160, true, false);
+                    self.game.cameras[0].hud.textPrompt.AddMessage("If struggling, you may disable boost exhuastion in REMIX.", 40, 160, true, false);
                     return false;
                 case 1:
+                    self.game.cameras[0].hud.textPrompt.AddMessage("For easier boost chains, you may disable Legacy Wallpouncing in REMIX.", 40, 160, true, false);
+                    return false;
+                case 2:
                     return true;
                 default:
                     return true;
