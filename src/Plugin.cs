@@ -46,7 +46,7 @@ namespace ShuqingRemix
             Shuqing_Name = new("Shuqing"); // This calls for the registered ExtEnum that SlugBase created
         }
 
-        // Add manual hooks...
+        internal static ShuqingRemixOptions options;
         private bool _isInit = false;
         private void ManualHooks(On.RainWorld.orig_OnModsInit orig, RainWorld self)
         {
@@ -60,11 +60,12 @@ namespace ShuqingRemix
             Logger.LogError("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
             Logger.LogMessage("MIMIMIMIMIMIMIIMaaaauAUAUAUUAAUAUUAAAUUAAIMIMMIMMMIMMIIMAUUAUAUAMIMIMIMIMIMIMMIMIMIIIMI");
             Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
-            Logger.LogError("MIMIMIMIUAUUAAAAAAAAAAAAAUAUUAUAUAUAMIMIMIIMIMIMMIMMMIMMIIMMIMIUAUAUAUWAWAHWHAHAHHAHAHHAMIMIMIMIMMIMIMIIIMI");
+            Logger.LogError("MIMIMIMIUAUUAAAAAAAAAAAAAUAUUAUAUAUAMIMIMIIMIMIMMIMMMIMMIIMMIMIUAUAUAUWAWAHWHAHAHHAHAHHAMIMIMIMIMMIMIMII");
             Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
             Logger.LogError("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
             Logger.LogMessage("MIMIMIMIMIMIMIIMIMIMMIMMMIMMIIMMIMIMIMIMIMIMMIMIMIIIMI");
 
+            // Hooks.
             try
             {
                 var _tm = typeof(Shuqing.ShuqingPlayer.PlayerHook)
@@ -75,6 +76,19 @@ namespace ShuqingRemix
             catch (Exception e)
             {
                 Logger.LogError(e);
+            }
+
+            // Remix config  menu.
+            options = new ShuqingRemixOptions();
+            try
+            {
+                MachineConnector.SetRegisteredOI("abrigo2.shuqingremix", options);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Remix Menu Template examples: Hook_OnModsInit options failed init error {options}{ex}");
+                base.Logger.LogError(ex);
+                base.Logger.LogMessage("WHOOPS");
             }
         }
         
@@ -225,7 +239,7 @@ namespace ShuqingRemix
 
             if (dir.x != 0 && Math.Abs(dir.y) < 0.5)
             {
-                dir = new Vector2((float)dir.x * 22f, 9f).normalized;
+                dir = new Vector2((float)dir.x * (float)(options.HorizontalBoostX.Value), (float)(options.HorizontalBoostY.Value)).normalized;
             }
             Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self, dir);
         }
