@@ -230,14 +230,21 @@ namespace ShuqingRemix
 
         }
 
-        // Lets Shuqing jump a little up in the air during horizontal boosts.
+        // Same as Shuqing_Jump, but adjusts the vector angle for horizontal and vertical boosts.
         private static void ShuqingJump_Remix(Action<Player> orig, Player self)
         {
             // hopefully this doesnt matter.....
             //if (PlayerModuleManager.PlayerModules.TryGetValue(self, out var _))
             Vector2 dir = new Vector2(RWInput.PlayerInput(self.playerState.playerNumber).x, RWInput.PlayerInput(self.playerState.playerNumber).y);
 
-            if (dir.x != 0 && Math.Abs(dir.y) < 0.5)
+            // Vertical boost.
+            if (dir.x == 0)
+            {
+                dir = new Vector2((float)self.flipDirection * (float)(options.VerticalBoostX.Value), (float)(options.VerticalBoostY.Value)).normalized;
+            }
+
+            // Horizontal boost.
+            else if (Math.Abs(dir.y) < 0.5)
             {
                 dir = new Vector2((float)dir.x * (float)(options.HorizontalBoostX.Value), (float)(options.HorizontalBoostY.Value)).normalized;
             }
