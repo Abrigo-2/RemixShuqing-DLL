@@ -4,58 +4,61 @@ using UnityEngine;
 
 public class ShuqingRemixOptions : OptionInterface
 {
-    public readonly Configurable<int> HorizontalBoostX;
-    public readonly Configurable<int> HorizontalBoostY;
-
-    public readonly Configurable<int> VerticalBoostX;
-    public readonly Configurable<int> VerticalBoostY;
+    public readonly Configurable<int> BoostAngleHorizontal;
+    public readonly Configurable<int> BoostAngleVertical;
+    public readonly Configurable<bool> HideTutorials;
+    public readonly Configurable<bool> UntestedWallpounceLeniency;
 
     public ShuqingRemixOptions()
     {
-        HorizontalBoostX = config.Bind("Suqing_H_Boost_Run", 22, new ConfigurableInfo("Changes X (Run) ammount of the boost vector for plain Horizontal boosts.", new ConfigAcceptableRange<int>(0, 100), "Settings", "Horizontal Boost - Run"));
-        HorizontalBoostY = config.Bind("Suqing_H_Boost_Rise", 9, new ConfigurableInfo("Changes Y (Rise) ammount of the boost vector for plain Horizontal boosts.", new ConfigAcceptableRange<int>(0, 100), "Settings", "Horizontal Boost - Rise"));
-
-        VerticalBoostX = config.Bind("Suqing_V_Boost_Run", 2, new ConfigurableInfo("Changes X (Run) ammount of the boost vector for plain Vertical boosts.", new ConfigAcceptableRange<int>(0, 100), "Settings", "Vertical Boost - Run"));
-        VerticalBoostY = config.Bind("Suqing_V_Boost_Rise", 16, new ConfigurableInfo("Changes Y (Rise) ammount of the boost vector for plain Vertical boosts.", new ConfigAcceptableRange<int>(0, 100), "Settings", "Vertical Boost - Rise"));
+        BoostAngleHorizontal = config.Bind("Suqing_H_Boost_Angle", 22, new ConfigurableInfo("Angle between player and floor during horizontal boosts.", new ConfigAcceptableRange<int>(0, 90), "Settings", "Horizontal Boost Angle"));
+        BoostAngleVertical = config.Bind("Suqing_V_Boost_Angle", 83, new ConfigurableInfo("Angle between player and floor during vertical boosts.", new ConfigAcceptableRange<int>(0, 90), "Settings", "Vertical Boost Angle"));
+        HideTutorials = config.Bind("Suqing_Hide_Tutorials", defaultValue:false);
+        UntestedWallpounceLeniency = config.Bind("Suqing_Always_Wallpounce_On", defaultValue: false);
     }
 
     public override void Initialize()
     {
         int num = 100;
         bool is_Big_Text = false;
+        Color cheatColor = new Color(0.85f, 0.35f, 0.4f);
 
-        OpTab mopTab = new OpTab(this, OptionInterface.Translate("Settings"));
+    OpTab mopTab = new OpTab(this, OptionInterface.Translate("Settings"));
         OpContainer opContainer = new OpContainer(new Vector2(0f, 0f));
         mopTab.AddItems(opContainer);
 
-        UIelement[] array = new UIelement[11]
+        UIelement[] array = new UIelement[10]
         {
-            new OpLabel(new Vector2(200f, 450f), new Vector2(200f, 200f), OptionInterface.Translate("The Boost Stamina option is at the original Shuqing. Sorry!"), FLabelAlignment.Center, bigText: false),
+            //new OpLabel(new Vector2(200f, 450f), new Vector2(200f, 200f), OptionInterface.Translate("The Boost Stamina option is at the original Shuqing. Sorry!"), FLabelAlignment.Center, bigText: false),
 
-            new OpUpdown(HorizontalBoostX, new Vector2(20f, 440f), 60f)
+            new OpUpdown(BoostAngleHorizontal, new Vector2(20f, 440f), 60f)
             {
-                description = "Changes X (Run) ammount of the boost vector for plain Horizontal boosts. (Default: 22)"
+                description = "Angle between player and floor during HORIZONTAL boosts. (Default: 22°)"
             },
-            new OpLabel(new Vector2(90f, 405f), new Vector2(num, num), OptionInterface.Translate("Horizontal Boost Run"), FLabelAlignment.Left),
-            new OpUpdown(HorizontalBoostY, new Vector2(20f, 400f), 60f)
+            new OpLabel(new Vector2(90f, 405f), new Vector2(num, num), OptionInterface.Translate("Horizontal Boost Angle"), FLabelAlignment.Left),
+            new OpUpdown(BoostAngleVertical, new Vector2(20f, 400f), 60f)
             {
-                description = "Changes Y (Rise) ammount of the boost vector for plain Horizontal boosts. (Default: 9)"
+                description = "Angle between player and floor during VERTICAL boosts. (Default: 83°)"
             },
-            new OpLabel(new Vector2(90f, 365f), new Vector2(num, num), OptionInterface.Translate("Horizontal Boost Rise"), FLabelAlignment.Left),
+            new OpLabel(new Vector2(90f, 365f), new Vector2(num, num), OptionInterface.Translate("Vertical Boost Angle"), FLabelAlignment.Left),
 
-            new OpUpdown(VerticalBoostX, new Vector2(220f, 440f), 60f)
+            new OpCheckBox(HideTutorials, new Vector2(260f, 440f))
             {
-                description = "Changes X (Run) ammount of the boost vector for plain Vertical boosts. (Default: 2)"
+                description = "Onscreen tutorials for Shuqing's mechanics will no longer show."
             },
-            new OpLabel(new Vector2(290f, 405f), new Vector2(num, num), OptionInterface.Translate("Vertical Boost Run"), FLabelAlignment.Left),
-            new OpUpdown(VerticalBoostY, new Vector2(220f, 400f), 60f)
+            new OpLabel(new Vector2(290f, 405f), new Vector2(num, num), OptionInterface.Translate("Hide Tutorials"), FLabelAlignment.Left),
+            new OpCheckBox(UntestedWallpounceLeniency, new Vector2(260f, 400f))
             {
-                description = "Changes Y (Rise) ammount of the boost vector for plain Vertical boosts. (Default: 16)"
+                colorEdge = cheatColor,
+                description = "! UNTESTED BEHAVIOR ! Enables Wallpouncing leniency even if already allowed by RWRemix."
             },
-            new OpLabel(new Vector2(290f, 365f), new Vector2(num, num), OptionInterface.Translate("Vertical Boost Rise"), FLabelAlignment.Left),
+            new OpLabel(new Vector2(290f, 365f), new Vector2(num, num), OptionInterface.Translate("Force Easy Wallpounces"), FLabelAlignment.Left)
+            {
+                color = cheatColor
+            },
 
-            new OpLabel(new Vector2(200f, 270f), new Vector2(200f, 200f), OptionInterface.Translate("The Legacy Walljumping option is at Rain World Remix."), FLabelAlignment.Center, bigText: false),
-            new OpLabel(new Vector2(200f, 235f), new Vector2(200f, 200f), OptionInterface.Translate("The Boost Stamina option is at the original Shuqing mod. Sorry!"), FLabelAlignment.Center, bigText: false)
+            new OpLabel(new Vector2(200f, 290f), new Vector2(200f, 200f), OptionInterface.Translate("The Legacy Walljumping option is at Rain World Remix."), FLabelAlignment.Center, bigText: false),
+            new OpLabel(new Vector2(200f, 255f), new Vector2(200f, 200f), OptionInterface.Translate("The Boost Stamina option is at the original Shuqing mod. Sorry!"), FLabelAlignment.Center, bigText: false)
         };
         mopTab.AddItems(array);
 

@@ -33,7 +33,9 @@ namespace ShuqingRemix
             On.RainWorld.OnModsInit += Extras.WrapInit(LoadResources);
             On.RainWorld.OnModsInit += ManualHooks;
 
-            HookTutorials();
+            On.Room.Update += RoomLF_E05.UpdateTutorial;
+            On.Room.Update += RoomRWS_wup3.UpdateTutorial;
+            On.Room.Update += RoomRWS_pea2.UpdateTutorial;
 
             On.Player.Update += Player_Update_ExhaustionBubbles;
             On.Player.Update += Player_Update_LenientBoostChain;
@@ -68,6 +70,7 @@ namespace ShuqingRemix
             // Hooks.
             try
             {
+                // Finds the function with maching name and required arguments to hook.
                 var _tm = typeof(Shuqing.ShuqingPlayer.PlayerHook)
                     .GetMethod(nameof(Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump),
                     new Type[] { typeof(Player) });
@@ -90,14 +93,6 @@ namespace ShuqingRemix
                 base.Logger.LogError(ex);
                 base.Logger.LogMessage("WHOOPS");
             }
-        }
-        
-
-        public void HookTutorials()
-        {
-            On.Room.Update += RoomLF_E05.UpdateTutorial;
-            On.Room.Update += RoomRWS_wup2.UpdateTutorial;
-            On.Room.Update += RoomRWS_pea3.UpdateTutorial;
         }
 
 
@@ -155,7 +150,7 @@ namespace ShuqingRemix
             {
                 return;
             }
-            else if (ModManager.MMF && MMF.cfgWallpounce.Value)
+            else if (ModManager.MMF && MMF.cfgWallpounce.Value && !options.UntestedWallpounceLeniency.Value)
             {
                 return;
             }
@@ -187,7 +182,7 @@ namespace ShuqingRemix
                 return;
             }
             // Only run if wallpounces are disabled.
-            else if (ModManager.MMF && MMF.cfgWallpounce.Value)
+            else if (ModManager.MMF && MMF.cfgWallpounce.Value && !options.UntestedWallpounceLeniency.Value)
             {
                 return;
             }
@@ -230,6 +225,7 @@ namespace ShuqingRemix
 
         }
 
+
         // Same as Shuqing_Jump, but adjusts the vector angle for horizontal and vertical boosts.
         private static void ShuqingJump_Remix(Action<Player> orig, Player self)
         {
@@ -240,13 +236,13 @@ namespace ShuqingRemix
             // Vertical boost.
             if (dir.x == 0)
             {
-                dir = new Vector2((float)self.flipDirection * (float)(options.VerticalBoostX.Value), (float)(options.VerticalBoostY.Value)).normalized;
+                dir = new Vector2( (float)self.flipDirection * Cos(options.BoostAngleVertical.Value), Sin(options.BoostAngleVertical.Value) );
             }
 
             // Horizontal boost.
             else if (Math.Abs(dir.y) < 0.5)
             {
-                dir = new Vector2((float)dir.x * (float)(options.HorizontalBoostX.Value), (float)(options.HorizontalBoostY.Value)).normalized;
+                dir = new Vector2( (float)dir.x * Cos(options.BoostAngleHorizontal.Value), Sin(options.BoostAngleHorizontal.Value) );
             }
             Shuqing.ShuqingPlayer.PlayerHook.ShuqingJump(self, dir);
         }
@@ -287,6 +283,11 @@ namespace ShuqingRemix
                     if (!Tutorial_Started) { this._message = 0; }
                     return;
                 }
+                // Quit if tutorials were disabled by Remix.
+                else if (options.HideTutorials.Value)
+                {
+                    return;
+                }
                 // Quit if message has been shown.
                 else if (Tutorial_Ended)
                 {
@@ -311,8 +312,8 @@ namespace ShuqingRemix
         }
 
         private AbstractRoomTutorial RoomLF_E05   = new AbstractRoomTutorial("BoostTutorial", "lf_e05", BoostTutorial);
-        private AbstractRoomTutorial RoomRWS_wup2 = new AbstractRoomTutorial("PoleBoostTutorial", "RWS_wup2", PoleBoostTutorial);
-        private AbstractRoomTutorial RoomRWS_pea3 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "RWS_pea2", ExhaustionCheatTutorial);
+        private AbstractRoomTutorial RoomRWS_wup3 = new AbstractRoomTutorial("PoleBoostTutorial", "rws_3", PoleBoostTutorial);
+        private AbstractRoomTutorial RoomRWS_pea2 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "RWS_pea2", ExhaustionCheatTutorial);
 
 
         // Tutorial for the (first!) major obstacle!
@@ -430,6 +431,20 @@ namespace ShuqingRemix
             ColorUtility.TryParseHtmlString("#04FDDD", out color);
             return color;
         }
+
+
+        // Math funcs. Receives angles in integer degrees.
+        internal static float Sin(int angle)
+        {
+            float rad = ((float)angle * Mathf.PI) / 180f;
+            return Mathf.Sin(rad);
+        }
+        internal static float Cos(int angle)
+        {
+            float rad = ((float)angle * Mathf.PI) / 180f;
+            return Mathf.Cos(rad);
+        }
+
 
     }
 
