@@ -260,7 +260,7 @@ namespace ShuqingRemix
 
             public AbstractRoomTutorial(string _1, string _2, Func<int,Room, bool> _3)
             {
-                SaveDataID = _1; TriggerRoomName = _2; EmittingMessageEnded = _3;
+                SaveDataID = _1; TriggerRoomName = _2.ToLower(); EmittingMessageEnded = _3;
             }
 
             public void UpdateTutorial(On.Room.orig_Update orig, Room self)
@@ -312,8 +312,8 @@ namespace ShuqingRemix
         }
 
         private AbstractRoomTutorial RoomLF_E05   = new AbstractRoomTutorial("BoostTutorial", "lf_e05", BoostTutorial);
-        private AbstractRoomTutorial RoomRWS_wup3 = new AbstractRoomTutorial("PoleBoostTutorial", "rws_3", PoleBoostTutorial);
-        private AbstractRoomTutorial RoomRWS_pea2 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "RWS_pea2", ExhaustionCheatTutorial);
+        private AbstractRoomTutorial RoomRWS_wup3 = new AbstractRoomTutorial("PoleBoostTutorial", "rws_wup3", PoleBoostTutorial);
+        private AbstractRoomTutorial RoomRWS_pea2 = new AbstractRoomTutorial("ExhaustionCheatTutorial", "rws_pea2", ExhaustionCheatTutorial);
 
 
         // Tutorial for the (first!) major obstacle!
@@ -329,7 +329,7 @@ namespace ShuqingRemix
                     self.game.cameras[0].hud.textPrompt.AddMessage("Before landing, tap JUMP to boost again! You can chain up to 3.", 60, 200, true, false);
                     return false;
                 case 2:
-                    self.game.cameras[0].hud.textPrompt.AddMessage("Be mindful to crawl if you exhaust yourself.", 40, 90, true, false);
+                    self.game.cameras[0].hud.textPrompt.AddMessage("Be careful not to exhaust yourself.", 40, 90, true, false);
                     return false;
                 case 3:
                     return true;
@@ -344,7 +344,7 @@ namespace ShuqingRemix
             switch (message)
             {
                 case 0:
-                    self.game.cameras[0].hud.textPrompt.AddMessage("You can start and chain boosts while grabbing onto poles.", 40, 220, true, false);
+                    self.game.cameras[0].hud.textPrompt.AddMessage("You can start and chain boosts while grabbing onto poles.", 120, 220, true, false);
                     return false;
                 case 1:
                     self.game.cameras[0].hud.textPrompt.AddMessage("Holding JUMP while standing on poles will yield the same effect.", 80, 220, true, false);
@@ -363,7 +363,7 @@ namespace ShuqingRemix
                     self.game.cameras[0].hud.textPrompt.AddMessage("If struggling, you may disable boost exhuastion in REMIX.", 40, 160, true, false);
                     return false;
                 case 1:
-                    self.game.cameras[0].hud.textPrompt.AddMessage("For easier boost chains, you may disable Legacy Wallpouncing in REMIX.", 40, 160, true, false);
+                    self.game.cameras[0].hud.textPrompt.AddMessage("For easier boost chains, disable Legacy Wallpouncing in REMIX.", 40, 160, true, false);
                     return false;
                 case 2:
                     return true;
