@@ -157,7 +157,7 @@ namespace ShuqingRemix
 
             bool isValidSpeed = (6.8f < speed);
             bool isInvalidState = (self.bodyMode == Player.BodyModeIndex.CorridorClimb || self.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut || self.animation == Player.AnimationIndex.BellySlide || self.bodyMode == Player.BodyModeIndex.Crawl);
-
+            
             if (!isInvalidState && direction.x != 0 && chunk == 0 && isValidSpeed && self.input[0].x == direction.x && !self.standing)
             {
                 ChainBoostLeniencyDirection = (float)direction.x;
@@ -233,8 +233,13 @@ namespace ShuqingRemix
             //if (PlayerModuleManager.PlayerModules.TryGetValue(self, out var _))
             Vector2 dir = new Vector2(RWInput.PlayerInput(self.playerState.playerNumber).x, RWInput.PlayerInput(self.playerState.playerNumber).y);
 
+            // Is in ZeroG; Omnidirectional boost.
+            if (self.bodyMode == Player.BodyModeIndex.ZeroG)
+            {
+                //nothing.
+            }
             // Vertical boost.
-            if (dir.x == 0)
+            else if (dir.x == 0)
             {
                 dir = new Vector2( (float)self.flipDirection * Cos(options.BoostAngleVertical.Value), Sin(options.BoostAngleVertical.Value) );
             }
